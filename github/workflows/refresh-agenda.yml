@@ -1,0 +1,40 @@
+name: Refresh cultural agenda
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # Daily at 05:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-cultural-agenda
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Fetch upcoming cultural events
+        run: python scripts/build_feed.py
+
+      - name: Commit updated agenda when changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add events.json
+          if git diff --cached --quiet; then
+            echo "No changes to the agenda."
+          else
+            git commit -m "Refresh cultural agenda"
+            git push
+          fi
